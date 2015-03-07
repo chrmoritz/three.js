@@ -9245,7 +9245,7 @@ THREE.BufferGeometry.prototype = {
 
 	},
 
-	merge: function ( geometry, offset ) {
+	merge: function ( geometry, offset, indexOffset ) {
 
 		if ( geometry instanceof THREE.BufferGeometry === false ) {
 
@@ -9255,6 +9255,7 @@ THREE.BufferGeometry.prototype = {
 		}
 
 		if ( offset === undefined ) offset = 0;
+		if ( indexOffset === undefined ) indexOffset = 0;
 
 		var attributes = this.attributes;
 
@@ -9270,15 +9271,71 @@ THREE.BufferGeometry.prototype = {
 
 			var attributeSize = attribute2.itemSize;
 
-			for ( var i = 0, j = attributeSize * offset; i < attributeArray2.length; i ++, j ++ ) {
+			if ( key === 'index' ) {
 
-				attributeArray1[ j ] = attributeArray2[ i ];
+				for ( var i = 0, j = attributeSize * indexOffset; i < attributeArray2.length; i ++, j ++ ) {
+
+					attributeArray1[ j ] = attributeArray2[ i ] + offset;
+
+				}
+
+			} else {
+
+				for ( var i = 0, j = attributeSize * offset; i < attributeArray2.length; i ++, j ++ ) {
+
+					attributeArray1[ j ] = attributeArray2[ i ];
+
+				}
 
 			}
 
 		}
 
 		return this;
+
+	},
+
+	mergeBufferGeometries: function ( geometry1 ) {
+
+		if ( arguments.length === 0 ) return;
+
+		var offsets = [];
+		var length = 0;
+		var itemSize;
+
+		for ( var i = 0, l = arguments.length; i < l; i ++ ) {
+
+			if ( arguments[ i ] instanceof THREE.BufferGeometry === false ) {
+
+				THREE.error( 'THREE.BufferGeometry.mergeBufferGeometries(): at least one argument not an instance of THREE.BufferGeometry.', arguments[i], i );
+				return;
+
+			}
+
+			if ( arguments[ i ].attributes.index !== undefined ) {
+
+				THREE.error( 'THREE.BufferGeometry.mergeBufferGeometries() does not support indexed THREE.BufferGeometry yet.', arguments[ i ], i );
+				return;
+
+			}
+
+			offsets[ i ] = arguments[ i ].attributes.position.array.length / 3;
+			length += offsets[ i ];
+
+		}
+
+		for ( var key in geometry1.attributes ) {
+
+			itemSize = geometry1.attributes[key].itemSize;
+			this.addAttribute( key, new THREE.BufferAttribute( new Float32Array( length * itemSize ), itemSize ) );
+
+		}
+
+		for ( var i = 0, l = arguments.length; i < l; i ++ ) {
+
+			this.merge( arguments[ i ], offsets[ i ] )
+
+		}
 
 	},
 
